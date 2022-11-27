@@ -31,8 +31,6 @@ async fn retrieve(id: PasteId<'_>, config: &rocket::State<Config>) -> Option<fs:
     fs::File::open(filepath).await.ok()
 }
 
-use rocket::data::ToByteUnit;
-
 #[post("/paste", data = "<paste>")]
 async fn upload(
     paste: rocket::Data<'_>,
@@ -40,7 +38,8 @@ async fn upload(
 ) -> std::io::Result<String> {
     let id = PasteId::new(5);
     let filepath = Path::new(&config.uploads_dir).join(id.to_str());
-    paste.open(128.kibibytes()).into_file(filepath).await?;
+    let max_size = rocket::data::ToByteUnit::kibibytes(128);
+    paste.open(max_size).into_file(filepath).await?;
     Ok(id.to_str().to_owned())
 }
 
