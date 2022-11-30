@@ -24,16 +24,16 @@ fn index() -> &'static str {
     "
 }
 
-use rocket::tokio::fs;
+use rocket::{serde::json::Json, tokio::fs};
 use std::path::Path;
 
-#[get("/paste/<id>")]
+#[get("/pastes/<id>")]
 async fn retrieve(id: PasteId<'_>, config: &rocket::State<Config>) -> Option<fs::File> {
     let filepath = Path::new(&config.uploads_dir).join(id.to_str());
     fs::File::open(filepath).await.ok()
 }
 
-#[post("/paste", data = "<paste>")]
+#[post("/pastes", data = "<paste>")]
 async fn upload(
     paste: rocket::Data<'_>,
     config: &rocket::State<Config>,
@@ -45,6 +45,28 @@ async fn upload(
     Ok(id.to_str().to_owned())
 }
 
+#[get("/pastes")]
+async fn list_pastes(confif: &rocket::State<Config>) -> Json<Vec<String>> {
+    let mut out = Vec::new();
+
+    match fs::read_dir(&confif.uploads_dir).await {
+        Ok(mut dir) => {
+            while let Ok(Some(entry)) = dir.next_entry().await {
+                if let Ok(path) = entry.file_name().into_string() {
+                    out.push(path);
+                }
+            }
+        }
+        Err(err) => {
+            eprintln!(
+                "Failed opening upload directory, this should not be possible. {:?}",
+                err
+            );
+        }
+    }
+    Json(out)
+}
+
 #[launch]
 fn rocket() -> _ {
     let upload_dir = std::env::var("UPLOAD_DIR").expect("UPLOAD_DIR env variable needs to be set");
@@ -53,6 +75,6 @@ fn rocket() -> _ {
 
     rocket::build()
         .manage(Config::new(upload_dir))
-        .mount("/", routes![index, retrieve, upload])
+        .mount("/", routes![index, retrieve, upload, list_pastes])
         .attach(CorsFairing)
 }
