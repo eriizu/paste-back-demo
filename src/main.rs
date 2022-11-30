@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate rocket;
+mod cors;
 mod paste_id;
 mod state;
 
+use cors::CorsFairing;
 use paste_id::PasteId;
 use state::Config;
 
@@ -47,7 +49,10 @@ async fn upload(
 fn rocket() -> _ {
     let upload_dir = std::env::var("UPLOAD_DIR").expect("UPLOAD_DIR env variable needs to be set");
 
+    // let aa = rocket_
+
     rocket::build()
         .manage(Config::new(upload_dir))
         .mount("/", routes![index, retrieve, upload])
+        .attach(CorsFairing)
 }
