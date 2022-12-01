@@ -8,6 +8,8 @@ pub struct CorsFairing;
 impl Fairing for CorsFairing {
     async fn on_response<'r>(&self, request: &'r Request<'_>, response: &mut Response<'r>) {
         response.set_header(http::Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(http::Header::new("Access-Control-Expose-Headers", "*"));
+        response.set_header(http::Header::new("Access-Control-Allow-Headers", "*"));
 
         if response.status() == http::Status::NotFound && request.method() == http::Method::Options
         {
